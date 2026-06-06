@@ -11,12 +11,14 @@ from langchain_core.prompts import ChatPromptTemplate
 import requests
 import feedparser
 from bs4 import BeautifulSoup
+import time
 
 
 # API keys =================================================================
 load_dotenv()
 news_API = os.getenv("news_API")
 groq_API_KEY = os.getenv("groq_API_KEY")
+gemini_API_KEY = os.getenv("gemini_API_KEY")
 
 
 
@@ -32,7 +34,7 @@ investment_risk_tolerance = "medium"
 # step 3: Analyse the company's products, accuisitions, and partnerships. or news directly related to comapny.
 # step 4: Analyse the company's utilities and industry, and then search for its related news.
 
-def summarize(data):
+def summarize_groq(data):
     llm = ChatOpenAI(
     model="llama-3.3-70b-versatile",
     api_key=groq_API_KEY,
@@ -42,8 +44,12 @@ def summarize(data):
     return response.content
 
 def summarize_gemini(data):
-    # Implementation for Gemini summarization
-    pass
+    llm = ChatOpenAI(
+    model="gemini-2.0-flash",
+    api_key=gemini_API_KEY,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
+    response = llm.invoke(f"Summarize the given article, and tell What is the news about, what happened, and the keypoints: {data}")
+    return response.content
 
 def summarize_local(data):
     llm = ChatOllama(
@@ -93,7 +99,7 @@ def company_dna_newsAPI(company_name, news_API, depth=1):
     lst_news = []
     i=0
     for article in articles[:depth]:
-        time.sleep(1)
+        time.sleep(5)
         i+=1
         url = article["url"]
         request = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=True)
@@ -102,13 +108,23 @@ def company_dna_newsAPI(company_name, news_API, depth=1):
         lst_news.append({
             "info_id": f"n{i}",
             "news_title": article["title"],
-            "news_description": summarize(cnt),
+            "news_description": summarize_groq(cnt),
             "date": article["publishedAt"][:10],
             "source": article["source"]["name"]
         })
-    
 
     return lst_news
+
+
+def financial_health_analysis(company_name):
+    # Code to analyse the company's financial health and performance
+    pass
+
+
+def competitive_position_analysis(company_name):
+    # Code to analyse the company's competitive position in the industry
+    pass
+
 
 def view(lst_news):
     for news in lst_news:
@@ -116,12 +132,12 @@ def view(lst_news):
             print(f"{bold(key)}: {value}")
         print("-" * 50)
 
-import time
-start_time = time.time()
-print()
-view(company_dna_newsAPI(company_name, news_API))
-print("\n\n")
-print(f"Execution time: {time.time() - start_time} seconds")
+
+# start_time = time.time()
+# print()
+# view(company_dna_newsAPI(company_name, news_API))
+# print("\n\n")
+# print(f"Execution time: {time.time() - start_time} seconds")
 
 # test case ==================================================================
 # lst_news = company_direct_news_analysis(company_name)
@@ -150,14 +166,7 @@ print(f"Execution time: {time.time() - start_time} seconds")
 # print(request.url)
 
 
-def utilities_and_industry_analysis(company_name):
-    # Code to analyse the company's utilities and industry, and then search for its related news.
-    pass
-def financial_health_analysis(company_name):
-    # Code to analyse the company's financial health and performance
-    pass
-
-def competitive_position_analysis(company_name):
-    # Code to analyse the company's competitive position in the industry
-    pass
+# def utilities_and_industry_analysis(company_name):
+#     # Code to analyse the company's utilities and industry, and then search for its related news.
+#     pass
 
