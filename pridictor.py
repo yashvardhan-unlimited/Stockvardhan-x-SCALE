@@ -13,6 +13,8 @@ import feedparser
 from bs4 import BeautifulSoup
 import time
 
+from typer import prompt
+
 
 # API keys =================================================================
 load_dotenv()
@@ -34,35 +36,37 @@ investment_risk_tolerance = "medium"
 # step 3: Analyse the company's products, accuisitions, and partnerships. or news directly related to comapny.
 # step 4: Analyse the company's utilities and industry, and then search for its related news.
 
-def summarize_groq(data):
+def summarize_groq(data, prompt="Summarize the given article, and tell What is the news about, what happened, and the keypoints:"):
     llm = ChatOpenAI(
     model="llama-3.3-70b-versatile",
     api_key=groq_API_KEY,
     base_url="https://api.groq.com/openai/v1"
     )
-    response = llm.invoke(f"Summarize the given article, and tell What is the news about, what happened, and the keypoints: {data}")
+    response = llm.invoke(f"{prompt} {data}")
     return response.content
 
-def summarize_gemini(data):
+def summarize_gemini(data, prompt="Summarize the given article, and tell What is the news about, what happened, and the keypoints:"):
     llm = ChatOpenAI(
     model="gemini-2.0-flash",
     api_key=gemini_API_KEY,
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
-    response = llm.invoke(f"Summarize the given article, and tell What is the news about, what happened, and the keypoints: {data}")
+    response = llm.invoke(f"{prompt} {data}")
     return response.content
 
-def summarize_local(data):
+def summarize_local(data, prompt="Summarize the given article, and tell What is the news about, what happened, and the keypoints:"):
     llm = ChatOllama(
         model="llama3.1:latest",
         temperature=0.2
     )
-    response = llm.invoke(f"Summarize the given article, and tell What is the news about, what happened, and the keypoints: {data}")
+    response = llm.invoke(f"{prompt} {data}")
     return response.content
+
 
 def bold(text):
     # Code to bold the text.
     # color text to red
     return f"\033[1;31m{text}\033[0m"
+
 
 def company_dna_scraping(company_name):
     # Code to analyse the company's products, accuisitions, and partnerships. or news directly related to comapny.
@@ -80,11 +84,11 @@ def company_dna_scraping(company_name):
                          ("source"): soup.find_all("item")[i].source.text
                         })
 
-
     return lst_news
     # return soup.prettify()
 
-def company_dna_newsAPI(company_name, news_API, depth=1):
+
+def company_dna_newsAPI(company_name, news_API, depth=5):
     url = "https://newsapi.org/v2/everything"
     params = {
         "q": f"{company_name}",
@@ -115,6 +119,15 @@ def company_dna_newsAPI(company_name, news_API, depth=1):
 
     return lst_news
 
+def about_company_analysis(company_name,news_API):
+    prompt = "Name the major competitors of the company {company_name}, please give the answer in a list format of python, and keep the company names in it in single quotes, eg ['company1', 'company2', 'company3'] "
+    word = summarize_groq(groq_API_KEY, prompt.format(company_name=company_name))
+    lst_competitors = list(eval(word))
+    lst_content = []
+    for competitor in lst_competitors:
+        lst_content += company_dna_newsAPI(competitor, news_API, depth=2)
+
+    return lst_content
 
 def financial_health_analysis(company_name):
     # Code to analyse the company's financial health and performance
@@ -170,3 +183,7 @@ def view(lst_news):
 #     # Code to analyse the company's utilities and industry, and then search for its related news.
 #     pass
 
+# view(company_dna_newsAPI(company_name, news_API))
+
+
+view(about_company_analysis(company_name,news_API))
