@@ -119,7 +119,7 @@ def company_dna_newsAPI(company_name, news_API, depth=5):
 
     return lst_news
 
-def about_company_analysis(company_name,news_API):
+def competitive_position_analysis(company_name,news_API):
     prompt = "Name the major competitors of the company {company_name}, please give the answer in a list format of python, and keep the company names in it in single quotes, eg ['company1', 'company2', 'company3'] "
     word = summarize_groq(groq_API_KEY, prompt.format(company_name=company_name))
     lst_competitors = list(eval(word))
@@ -134,7 +134,7 @@ def financial_health_analysis(company_name):
     pass
 
 
-def competitive_position_analysis(company_name):
+def about_company_analysis(company_name):
     # Code to analyse the company's competitive position in the industry
     pass
 
