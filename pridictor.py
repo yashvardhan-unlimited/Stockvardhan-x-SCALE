@@ -12,7 +12,10 @@ import requests
 import feedparser
 from bs4 import BeautifulSoup
 import time
-
+import json
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain.agents import initialize_agent, AgentType
 from typer import prompt
 
 
@@ -22,13 +25,9 @@ news_API = os.getenv("news_API")
 groq_API_KEY = os.getenv("groq_API_KEY")
 gemini_API_KEY = os.getenv("gemini_API_KEY")
 fmp_API_KEY = os.getenv("fmp_API_KEY")
+TAVILY_API_KEY = os.getenv("tavily")
 
 
-# test data ================================================================
-company_name = "NVIDIA"
-investment_horizon = "5 years"
-investment_amount = "10000 USD"
-investment_risk_tolerance = "medium"
 
 # I will be creating a stock analyser agent in 5 steps.
 # step 1: Analyse the company's financial health and performance.
@@ -45,13 +44,13 @@ def summarize_groq(data, prompt="Summarize the given article, and tell What is t
     response = llm.invoke(f"{prompt} {data}")
     return response.content
 
-def summarize_gemini(data, prompt="Summarize the given article, and tell What is the news about, what happened, and the keypoints:"):
-    llm = ChatOpenAI(
-    model="gemini-2.0-flash",
-    api_key=gemini_API_KEY,
-    base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
-    response = llm.invoke(f"{prompt} {data}")
-    return response.content
+# def summarize_gemini(data, prompt="Summarize the given article, and tell What is the news about, what happened, and the keypoints:"):
+#     llm = ChatOpenAI(
+#     model="gemini-2.0-flash",
+#     api_key=gemini_API_KEY,
+#     base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
+#     response = llm.invoke(f"{prompt} {data}")
+#     return response.content
 
 def summarize_local(data, prompt="Summarize the given article, and tell What is the news about, what happened, and the keypoints:"):
     llm = ChatOllama(
@@ -69,24 +68,24 @@ def bold(text):
     return f"\033[1;31m{text}\033[0m"
 
 
-def company_dna_scraping(company_name):
-    # Code to analyse the company's products, accuisitions, and partnerships. or news directly related to comapny.
-    link1 = f"https://news.google.com/rss/search?q=latest+news+related+to+company+{company_name}"
-    request = requests.get(link1,allow_redirects=True, headers={"User-Agent": "Mozilla/5.0"})
-    soup = BeautifulSoup(request.text, "xml")
-    lst_news = []
-    for i in range(1):
-        request2 = requests.get()
-        soup2 = BeautifulSoup(request2.content, "html.parser")
+# def company_dna_scraping(company_name):
+#     # Code to analyse the company's products, accuisitions, and partnerships. or news directly related to comapny.
+#     link1 = f"https://news.google.com/rss/search?q=latest+news+related+to+company+{company_name}"
+#     request = requests.get(link1,allow_redirects=True, headers={"User-Agent": "Mozilla/5.0"})
+#     soup = BeautifulSoup(request.text, "xml")
+#     lst_news = []
+#     for i in range(1):
+#         request2 = requests.get()
+#         soup2 = BeautifulSoup(request2.content, "html.parser")
 
-        lst_news.append({("info_id"): f"n{i+1}", 
-                         ("news"): (soup2.find_all("item")[i]),
-                         ("date"): (soup.find_all("item")[i].pubDate.text)[:16],
-                         ("source"): soup.find_all("item")[i].source.text
-                        })
+#         lst_news.append({("info_id"): f"n{i+1}", 
+#                          ("news"): (soup2.find_all("item")[i]),
+#                          ("date"): (soup.find_all("item")[i].pubDate.text)[:16],
+#                          ("source"): soup.find_all("item")[i].source.text
+#                         })
 
-    return lst_news
-    # return soup.prettify()
+#     return lst_news
+#     # return soup.prettify()
 
 
 def company_dna_newsAPI(company_name, news_API, depth=5):
@@ -120,13 +119,13 @@ def company_dna_newsAPI(company_name, news_API, depth=5):
 
     return lst_news
 
-def competitive_position_analysis(company_name,news_API):
+def competitive_position_analysis(company_name,news_API, depth = 5):
     prompt = "Name the major competitors of the company {company_name}, please give the answer in a list format of python, and keep the company names in it in single quotes, eg ['company1', 'company2', 'company3'] "
     word = summarize_groq(groq_API_KEY, prompt.format(company_name=company_name))
     lst_competitors = list(eval(word))
     lst_content = []
     for competitor in lst_competitors:    
-        content = company_dna_newsAPI(competitor, news_API, depth=1)
+        content = company_dna_newsAPI(competitor, news_API, depth)
         for dc in content:
             dc["competitor company"] = competitor
         lst_content += content
@@ -135,9 +134,9 @@ def competitive_position_analysis(company_name,news_API):
 
 
 
-def about_company_analysis(company_name):
-    # Code to analyse the company's competitive position in the industry
-    pass
+# def about_company_analysis(company_name):
+#     # Code to analyse the company's competitive position in the industry
+#     pass
 
 
 def view(lst_news):
@@ -471,14 +470,7 @@ def financial_health_analysis(company_name, fmp_api_key, groq_api_key):
 # ===========================================================================================================================================
 
 
-
-import json
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain.agents import initialize_agent, AgentType
-
-
-
+# Main Agent function declaration 
 
 def stock_ai_research_agent(
     company_name: str,
@@ -487,8 +479,7 @@ def stock_ai_research_agent(
     risk_tolerance: str,
     financial_data: dict,
     latest_news: list,
-    competitor_news: list,
-    financial_news: list
+    competitor_news: list
 ):
 
     # -----------------------------
@@ -554,10 +545,6 @@ COMPETITOR NEWS
 =====================
 {json.dumps(competitor_news, indent=2)}
 
-=====================
-FINANCIAL / MARKET NEWS
-=====================
-{json.dumps(financial_news, indent=2)}
 
 =====================
 TASK
@@ -598,3 +585,30 @@ If uncertain, say so clearly.
     response = agent.run(prompt)
 
     return response
+
+# test data ================================================================
+company_name = "NVIDIA"
+investment_horizon = "5 years"
+investment_amount = "10000 USD"
+risk_tolerance = "medium"
+
+# test case ================================================================
+
+financial_data = financial_health_analysis(company_name, fmp_API_KEY, groq_API_KEY)
+latest_news = company_dna_newsAPI(company_name, news_API, 15)
+competitor_news = competitive_position_analysis(company_name, news_API, 5)
+
+
+result = stock_ai_research_agent(
+    company_name,
+    investment_horizon,
+    investment_amount,
+    risk_tolerance,
+    financial_data,
+    latest_news,
+    competitor_news
+)
+
+print("Stockvardhan.com","="*50)
+print()
+print(result)
