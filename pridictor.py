@@ -15,7 +15,7 @@ import time
 import json
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain.agents import initialize_agent, AgentType
+from langchain.agents import create_agent
 from typer import prompt
 
 
@@ -501,10 +501,9 @@ def stock_ai_research_agent(
     # -----------------------------
     # 3. Agent
     # -----------------------------
-    agent = initialize_agent(
+    agent = create_agent(
         tools=tools,
         llm=llm,
-        agent=AgentType.OPENAI_FUNCTIONS,
         verbose=True
     )
 
