@@ -34,7 +34,7 @@ TAVILY_API_KEY = os.getenv("tavily")
 # step 2: Analyse the company's competitive position in the industry.
 # step 3: Analyse the company's products, accuisitions, and partnerships. or news directly related to comapny.
 # step 4: Analyse the company's utilities and industry, and then search for its related news.
-
+# change
 def summarize_groq(data, prompt="Summarize the given article, and tell What is the news about, what happened, and the keypoints:"):
     llm = ChatOpenAI(
     model="llama-3.3-70b-versatile",
@@ -77,7 +77,7 @@ def bold(text):
 #     for i in range(1):
 #         request2 = requests.get()
 #         soup2 = BeautifulSoup(request2.content, "html.parser")
-
+# This is a test comment
 #         lst_news.append({("info_id"): f"n{i+1}", 
 #                          ("news"): (soup2.find_all("item")[i]),
 #                          ("date"): (soup.find_all("item")[i].pubDate.text)[:16],
